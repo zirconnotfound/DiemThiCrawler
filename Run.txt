@@ -1,0 +1,7 @@
+B1: Tại terminal, gõ lệnh pip install requirements.txt
+
+B2: Tạo file .env với các dòng giống với .env.example, điền các giá trị của API_KEY_2CAPTCHA là api key của 2captcha, giá trị của OUTPUT_FILE là tên file muốn in ra
+
+B3: Vào hàm Main.py, thay đổi giá trị start, end tùy ý, mode có 2 lựa chọn là manual nếu muốn giải captcha bằng tay và auto nếu muốn dùng 2captcha để giải (sẽ dùng api key đã điền)
+
+B4: Chạy file Main.py
