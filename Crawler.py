@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 import requests
 
 class DiemThiCrawler:
-    def __init__(self, start: int, end: int, mode: str, api_key: str = ""):
+    def __init__(self, start: int, end: int, mode: str, api_key: str = "", url: str = "https://hatinh.edu.vn/tracuudiemthi_ts10"):
         self.start = start
         self.end = end
         self.mode = mode
@@ -18,6 +18,14 @@ class DiemThiCrawler:
             "Điểm chuyên", "Tổng chuyên", "Ghi chú"
         ]
         self.captured_data = []
+        self.url = url
+    
+    async def extract_columns_from_table(self, page):
+        headers = await page.eval_on_selector_all(
+            "thead > tr > th",
+            "ths => ths.map(th => th.innerText)"
+        )
+        self.columns = headers
 
     def extract_scores_from_html(self, html: str) -> pd.DataFrame:
         soup = BeautifulSoup(html, "html.parser")
@@ -39,7 +47,7 @@ class DiemThiCrawler:
 
     def verify_response(self, response_url: str, html: str) -> bool:
         return "hatinh.edu.vn" in response_url and "BotDetect" not in html
-
+    
     async def solve_captcha(self, image_bytes: bytes) -> str:
         b64_image = base64.b64encode(image_bytes).decode()
         resp = requests.post("http://2captcha.com/in.php", data={
@@ -86,8 +94,10 @@ class DiemThiCrawler:
                         self.captured_data.extend(scores_df.values.tolist())
                         valid_response_received.set()
 
-            await page.goto("https://hatinh.edu.vn/tracuudiemthi_ts10")
+            await page.goto(self.url)
             await page.wait_for_load_state("networkidle")
+            
+            await self.extract_columns_from_table(page)
 
             await page.evaluate("""
                 window.__isTyping = false;
