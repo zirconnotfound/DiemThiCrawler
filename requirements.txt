@@ -2,3 +2,10 @@ beautifulsoup4==4.13.4
 pandas==2.3.0
 playwright==1.52.0
 Requests==2.32.4
+opencv-python==4.13.0.90
+numpy==2.4.6
+ddddocr==1.6.1
+pyinstaller==6.20.0
+pandas==2.3.0
+dotenv==0.9.9
+openpyxl==3.1.5

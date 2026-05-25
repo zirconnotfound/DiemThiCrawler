@@ -198,6 +198,10 @@ cython_debug/
 # Marimo
 marimo/_static/
 marimo/_lsp/
+
+# Local CAPTCHA image downloaded for OCR
+captcha_images/
+data/
 __marimo__/
 *.csv
 *.xlsx

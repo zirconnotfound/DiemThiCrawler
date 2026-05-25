@@ -1,93 +1,131 @@
 # DiemThiCrawler 🕷️
 
-**DiemThiCrawler** là một công cụ được viết bằng Python dùng để **tự động thu thập và sắp xếp dữ liệu điểm thi vào lớp 10 THPT** của tỉnh **Hà Tĩnh** từ cổng thông tin chính thức: [https://hatinh.edu.vn](https://hatinh.edu.vn).
+**DiemThiCrawler** là một công cụ Python để tự động thu thập và xuất dữ liệu điểm thi (tra cứu điểm tuyển sinh vào lớp 10) từ cổng thông tin của Sở GD&ĐT Hà Tĩnh (https://hatinh.edu.vn). Công cụ này: thu thập, lưu trữ vào SQLite và xuất kết quả để xử lý/đưa vào Excel.
 
 ---
 
-## 📋 Tính năng
+## 📋 Mục tiêu
 
-- ✅ **Tự động thu thập** dữ liệu điểm thi từ website của Sở GD&ĐT Hà Tĩnh.
-- 🔢 **Sắp xếp và lọc dữ liệu** để dễ dàng phân tích.
-- 🧠 **Thiết kế theo mô-đun**, dễ bảo trì và mở rộng.
+- Tự động hóa việc lấy điểm thi theo `số báo danh` trong một dải số.
+- Lưu kết quả vào cơ sở dữ liệu SQLite với khoá chính là `(sbd, mon_chuyen)` để xử lý các trường hợp cùng SBD có nhiều bản ghi.
+- Xuất dữ liệu đã thu thập sang Excel bằng `SortWorker.py`.
+
+---
+
+## 🔧 Tính năng chính
+
+- Tự động điều khiển trình duyệt (Playwright) để gửi truy vấn và nhận kết quả.
+- Giải CAPTCHA bằng mô-đun nội bộ (`Captcha.py`) — ảnh CAPTCHA được lưu tạm dưới `captcha_images/` và bị ignore bởi Git.
+- Lưu kết quả vào `data/output.sqlite3` (SQLite).
+- Retry logic: cố gắng giải CAPTCHA cho mỗi SBD nhiều lần (configurable), và thực hiện nhiều vòng thử lại cho những SBD thất bại.
 
 ---
 
 ## 🛠️ Yêu cầu
 
-- Python **3.7+**
-- Trình quản lý gói `pip`
+- Python 3.8+ (hoạt động với 3.10/3.12 theo thử nghiệm).
+- Các thư viện: được liệt kê trong `requirements.txt`. Cài bằng:
+
+```bash
+pip install -r requirements.txt
+```
+
+- Playwright cần được cài và cài browser binaries:
+
+```bash
+python -m playwright install
+```
 
 ---
 
-## ⚙️ Cài đặt
+## ⚙️ Cấu hình (.env)
 
-1. Tải mã nguồn:
-   ```bash
-   git clone https://github.com/zirconnotfound/DiemThiCrawler.git
-   cd DiemThiCrawler
-   ```
-
-2. Cài đặt các thư viện phụ thuộc:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
----
-
-## 🧪 Cấu hình
-
-Sao chép file `.env.example` thành `.env` và điền các biến môi trường cần thiết:
+Sao chép `.env.example` thành `.env` rồi chỉnh các biến theo nhu cầu:
 
 ```bash
 cp .env.example .env
 ```
 
-Tuỳ chỉnh thông tin như API key (nếu có), cấu hình proxy hoặc các tuỳ chọn crawler khác (nếu cần).
+Các biến quan trọng trong `.env`:
+
+- `START` – bắt đầu của dải SBD (mặc định: 350001)
+- `END` – kết thúc của dải SBD (mặc định: 350999)
+- `OUTPUT_FILE` – đường dẫn/ tên file excel đầu ra (mặc định trong `.env.example`)
+- `MAX_CAPTCHA_ATTEMPTS` – số lần thử giải CAPTCHA cho một SBD trong một vòng (mặc định: 7)
+- `MAX_ROUNDS` – số vòng lặp thử lại các SBD thất bại (mặc định: 3)
+- `RESPONSE_TIMEOUT` – thời gian chờ (giây) để đợi phản hồi sau khi submit (mặc định: 1.0)
+- `ROUND_PAUSE_MS` – tạm dừng giữa các vòng (ms)
+- `FINAL_WAIT_MS` – thời gian chờ cuối trước khi đóng trình duyệt (ms)
+- `MIN_DELAY`, `MAX_DELAY` – khoảng random (giây) nghỉ giữa mỗi số báo danh để giảm tải lên server
+
+Lưu ý: `.env` không nên chứa thông tin nhạy cảm đã commit — file `.env.example` chỉ là mẫu.
 
 ---
 
-## 🚀 Cách sử dụng
+## 🚀 Chạy chương trình
 
-Chạy toàn bộ quy trình:
+1. Tạo môi trường ảo (khuyến nghị):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # macOS/Linux
+.venv\\Scripts\\activate     # Windows PowerShell
+```
+
+2. Cài phụ thuộc và Playwright:
+
+```bash
+pip install -r requirements.txt
+python -m playwright install
+```
+
+3. Chuẩn bị `.env` như ý và chạy:
+
 ```bash
 python Main.py
 ```
 
-Kết quả (CSV, Excel, JSON...) sẽ được lưu tại thư mục hiện hành hoặc đường dẫn đầu ra bạn cấu hình.
+4. Kết quả: chương trình lưu dữ liệu vào `data/output.sqlite3`. Sau khi kết thúc, `Main.py` sẽ gọi `SortWorker` để xuất file Excel (theo `OUTPUT_FILE` trong `.env`).
 
 ---
 
-## 📂 Cấu trúc thư mục
+## 📂 Cấu trúc mã nguồn (tổng quan)
 
 ```
 .
-├── Crawler.py       # Thu thập dữ liệu điểm thi từ trang web
-├── Main.py          # Tập lệnh chính để chạy toàn bộ quá trình
-├── SortWorker.py    # Xử lý, sắp xếp dữ liệu điểm đã crawl
-├── requirements.txt # Danh sách thư viện Python cần cài
-├── .env.example     # Mẫu file biến môi trường
+├── Crawler.py         # Luồng thu thập chính: điều khiển Playwright, xử lý CAPTCHA, lưu vào SQLite
+├── Captcha.py         # Tiền xử lý ảnh CAPTCHA và gọi OCR (ddddocr)
+├── Main.py            # Entrypoint: load .env, khởi tạo Crawler, gọi exporter
+├── SortWorker.py      # Chia/ gom/ xuất dữ liệu ra Excel theo môn chuyên
+├── requirements.txt   # Thư viện cần cài
+├── .env.example       # Mẫu biến môi trường
 ├── .gitignore
-└── Run.txt          # Ghi chú/câu lệnh ví dụ để chạy
+├── data/              # (tự tạo) Chứa output.sqlite3
+├── captcha_images/    # (tự tạo) Ảnh captcha được lưu tạm
+└── Run.txt            # Các ghi chú vận hành
 ```
 
 ---
 
-## 📝 Đóng góp
+## 📝 Ghi chú quan trọng / Troubleshooting
 
-Rất hoan nghênh mọi đóng góp! Bạn có thể gửi pull request để cải thiện mã nguồn, sửa lỗi hoặc thêm tính năng mới.
+- Nếu Playwright báo lỗi thiếu trình duyệt, chạy `python -m playwright install`.
+- Môi trường cục bộ cần có `pandas`, `playwright`, `beautifulsoup4`, `ddddocr`, `opencv-python` như trong `requirements.txt`.
+- Nếu bạn thấy lỗi về `.body()` (Protocol error: No data found...), đã implement cơ chế bỏ qua response không đọc được và log warning — điều này là bình thường cho một số loại response không có body.
+- SQLite: `data/output.sqlite3` là lưu trữ chính; sao lưu file này nếu cần giữ kết quả lâu dài.
+
+---
+
+## 🙏 Đóng góp
+
+Rất hoan nghênh PR và issue. Nếu bạn muốn mở rộng (ví dụ: thay OCR, dùng external CAPTCHA service, hoặc export thêm định dạng), hãy mở issue để thảo luận trước.
 
 ---
 
 ## 🧾 Giấy phép
 
-Dự án được phát hành theo giấy phép [MIT License](LICENSE) — bạn được phép sử dụng và chỉnh sửa tự do.
+Dự án phát hành theo MIT License.
 
 ---
 
-## 📞 Liên hệ
-
-Nếu có câu hỏi, vui lòng mở issue trên GitHub hoặc liên hệ qua email cá nhân (nếu có cung cấp).
-
----
-
-*Chúc bạn sử dụng DiemThiCrawler hiệu quả! 🇻🇳📊*
+_Chúc bạn sử dụng DiemThiCrawler hiệu quả!_
