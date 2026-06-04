@@ -84,7 +84,18 @@ class MonChuyenExporter:
                     # Only sort by columns that actually exist in this group
                     available_sort_cols = [c for c in self.sort_by if c in group.columns]
                     if available_sort_cols:
-                        sorted_group = group.sort_values(by=available_sort_cols, ascending=False)
+                        sort_df = group.copy()
+                        vang_mask = pd.Series(False, index=sort_df.index)
+                        for col in available_sort_cols:
+                            vang_mask |= sort_df[col].astype(str).str.strip() == 'Vắng'
+                        sort_df['_vang_flag'] = vang_mask.astype(int)
+                        for col in available_sort_cols:
+                            sort_df[col] = pd.to_numeric(sort_df[col], errors='coerce')
+                        sorted_group = sort_df.sort_values(
+                            by=['_vang_flag'] + available_sort_cols,
+                            ascending=[True] + [False] * len(available_sort_cols),
+                            na_position='last'
+                        ).drop(columns=['_vang_flag'])
                     else:
                         sorted_group = group
 
@@ -99,3 +110,15 @@ class MonChuyenExporter:
                 df.head(0).to_excel(writer, sheet_name='Sheet1', index=False)
 
         print(f"Data has been exported to '{self.output_excel_path}'")
+
+if __name__ == "__main__":
+    output_excel = os.getenv("OUTPUT_FILE", "output.xlsx")
+    database_path = os.path.join("data", "output.sqlite3")
+    table_name = "diem_thi"
+
+    exporter = MonChuyenExporter(
+        output_excel_path=output_excel,
+        database_path=database_path,
+        table_name=table_name,
+    )
+    exporter.process_and_export_from_database()
