@@ -1,6 +1,5 @@
 from Crawler import DiemThiCrawler as Crawler
 from SortWorker import MonChuyenExporter as Exporter
-import asyncio
 import os
 from dotenv import load_dotenv
 
@@ -30,7 +29,7 @@ def main():
     )
 
     # Run the crawler to populate the database
-    asyncio.run(crawler.run())
+    crawler.run()
 
     output_excel = os.getenv("OUTPUT_FILE", "output.xlsx")
     exporter = Exporter(
